@@ -69,7 +69,7 @@ function AffiliateSettingsPage() {
             <h1 className="text-3xl font-bold text-foreground mb-4">Not an Affiliate Yet</h1>
             <p className="text-muted-foreground mb-8">Join the program to access your settings</p>
             <Link
-              href="/affiliate"
+              href="/auth/sign-up?affiliate=true"
               className="inline-block px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-secondary transition"
             >
               Become an Affiliate

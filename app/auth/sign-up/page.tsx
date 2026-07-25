@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { SignUpForm } from './sign-up-form'
+import { SignUpPageContent } from './sign-up-page-content'
 
 function SignUpFallback() {
   return (
@@ -21,7 +22,7 @@ function SignUpFallback() {
 export default function Page() {
   return (
     <Suspense fallback={<SignUpFallback />}>
-      <SignUpForm />
+      <SignUpPageContent />
     </Suspense>
   )
 }

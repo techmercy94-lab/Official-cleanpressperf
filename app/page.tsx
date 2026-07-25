@@ -45,7 +45,7 @@ async function HomePage() {
                 </Link>
 
                 <Link
-                  href="/affiliate"
+                  href="/auth/sign-up?affiliate=true"
                   className="inline-flex items-center justify-center px-6 py-3 border border-primary text-primary font-semibold rounded-lg hover:bg-primary hover:text-primary-foreground transition"
                 >
                   Become an Affiliate
@@ -132,7 +132,7 @@ async function HomePage() {
             Join our affiliate program and earn 15% commission on every sale. No limits, lifetime tracking on every customer you refer.
           </p>
           <Link
-            href="/affiliate"
+            href="/auth/sign-up?affiliate=true"
             className="inline-flex items-center px-8 py-4 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-secondary transition"
           >
             Start Earning Today
