@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { registerAsAffiliate } from '@/app/actions/affiliate'
 
 export function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -22,13 +23,18 @@ export function SignUpForm() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [isAffiliateSignup, setIsAffiliateSignup] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
   useEffect(() => {
     const ref = searchParams.get('ref')
+    const affiliate = searchParams.get('affiliate')
     if (ref) {
       setReferralCode(ref)
+    }
+    if (affiliate === 'true') {
+      setIsAffiliateSignup(true)
     }
   }, [searchParams])
 
@@ -80,6 +86,17 @@ export function SignUpForm() {
         }
       }
 
+      // If signup as affiliate, register as affiliate
+      if (isAffiliateSignup && data.user) {
+        try {
+          await registerAsAffiliate(data.user.id)
+          router.push('/affiliate')
+          return
+        } catch (err) {
+          console.error('Error registering as affiliate:', err)
+        }
+      }
+
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
@@ -94,13 +111,22 @@ export function SignUpForm() {
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Join CleanPressperf</CardTitle>
+              <CardTitle className="text-2xl">
+                {isAffiliateSignup ? 'Become an Affiliate' : 'Join CleanPressperf'}
+              </CardTitle>
               <CardDescription>
-                Create your account and start your journey to earning premium commissions
+                {isAffiliateSignup
+                  ? 'Create your affiliate account and start earning 15% on every sale'
+                  : 'Create your account and start your journey to earning premium commissions'}
               </CardDescription>
               {referralCode && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
                   Joining via affiliate link: <strong>{referralCode}</strong>. You&apos;ll be permanently linked to this affiliate.
+                </div>
+              )}
+              {isAffiliateSignup && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                  You&apos;re signing up as an affiliate. After registration, you&apos;ll be able to start earning immediately.
                 </div>
               )}
             </CardHeader>
