@@ -127,11 +127,11 @@ export function SignUpForm() {
           return
         }
 
-        router.push('/affiliate/dashboard')
+        router.push('/affiliate')
         return
       }
 
-      router.push('/auth/sign-up-success')
+      router.push('/account')
     } catch (error: unknown) {
       setError(
         error instanceof Error

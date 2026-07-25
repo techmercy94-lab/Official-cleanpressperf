@@ -10,16 +10,34 @@ export async function registerAsAffiliate(
 ) {
   const supabase = await createClient()
 
-  // Check whether this user is already an affiliate
-  const { data: currentProfile, error: profileError } = await supabase
+  // Get the current user to get their email
+  const { data: { user } } = await supabase.auth.admin.getUserById(userId)
+  
+  // Check whether profile exists
+  let { data: currentProfile, error: profileError } = await supabase
     .from('profiles')
     .select('is_affiliate, affiliate_username')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
-  if (profileError) {
-    console.error('Error finding user profile:', profileError)
-    return { error: 'User profile not found' }
+  // If profile doesn't exist, create it
+  if (profileError || !currentProfile) {
+    const { data: newProfile, error: createError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        email: user?.email,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (createError) {
+      console.error('Error creating profile:', createError)
+      return { error: 'Failed to create user profile' }
+    }
+
+    currentProfile = newProfile
   }
 
   if (currentProfile?.is_affiliate) {
