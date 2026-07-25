@@ -12,8 +12,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 export default function Page() {
   const [email, setEmail] = useState('')
@@ -21,7 +21,16 @@ export default function Page() {
   const [repeatPassword, setRepeatPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [referralCode, setReferralCode] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      setReferralCode(ref)
+    }
+  }, [searchParams])
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,16 +45,41 @@ export default function Page() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo:
             process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
             `${window.location.origin}/auth/callback`,
+          data: {
+            affiliate_code: referralCode || null,
+          },
         },
       })
-      if (error) throw error
+      if (signUpError) throw signUpError
+
+      // Track affiliate referral if code provided
+      if (referralCode && data.user) {
+        try {
+          const { data: affiliate } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('affiliate_code', referralCode)
+            .single()
+
+          if (affiliate) {
+            await supabase.from('affiliate_customers').insert({
+              affiliate_id: affiliate.id,
+              customer_id: data.user.id,
+              referral_source: 'signup_link',
+            }).catch(() => null) // Ignore duplicates
+          }
+        } catch (err) {
+          console.error('Error tracking affiliate:', err)
+        }
+      }
+
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
@@ -64,6 +98,11 @@ export default function Page() {
               <CardDescription>
                 Create your account and start your journey to earning premium commissions
               </CardDescription>
+              {referralCode && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                  Joining via affiliate link: <strong>{referralCode}</strong>. You'll be permanently linked to this affiliate.
+                </div>
+              )}
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSignUp}>
