@@ -19,7 +19,7 @@ function AffiliatePage() {
               Earn 15% lifetime commission on every customer you refer. No limits, flexible promotions, and full tracking.
             </p>
             <Link
-              href="/auth/sign-up"
+              href="/auth/sign-up?affiliate=true"
               className="inline-block px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-secondary transition"
             >
               Get Started Free
@@ -106,7 +106,7 @@ function AffiliatePage() {
               Join hundreds of affiliates earning passive income
             </p>
             <Link
-              href="/auth/sign-up"
+              href="/auth/sign-up?affiliate=true"
               className="inline-block px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-secondary transition"
             >
               Create Free Account
