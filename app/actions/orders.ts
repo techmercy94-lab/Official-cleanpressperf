@@ -114,11 +114,40 @@ export async function updateOrderStatus(orderId: string, status: string, stripeS
     updateData.stripe_session_id = stripeSessionId;
   }
 
+  const { data: orderData, error: fetchError } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('id', orderId)
+    .single();
+
+  if (fetchError) {
+    console.error('Error fetching order:', fetchError);
+    return { error: fetchError };
+  }
+
   const { error } = await supabase.from('orders').update(updateData).eq('id', orderId);
 
   if (error) {
     console.error('Error updating order status:', error);
     return { error };
+  }
+
+  // Generate commission if order is paid and has affiliate
+  if (status === 'paid' && orderData.affiliate_id) {
+    const commissionRate = 15; // 15% commission
+    const commissionAmount = Math.floor(orderData.total_amount_naira * (commissionRate / 100));
+
+    await supabase
+      .from('commissions')
+      .insert({
+        affiliate_id: orderData.affiliate_id,
+        order_id: orderId,
+        commission_rate: commissionRate,
+        commission_amount_naira: commissionAmount,
+        order_status: status,
+        status: 'pending',
+      })
+      .catch((err) => console.error('Error creating commission:', err));
   }
 
   return { success: true };

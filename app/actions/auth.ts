@@ -60,7 +60,7 @@ export async function updateProfile(
   return { success: true };
 }
 
-export async function signUp(email: string, password: string, firstName?: string) {
+export async function signUp(email: string, password: string, firstName?: string, affiliateCode?: string) {
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signUp({
@@ -72,12 +72,30 @@ export async function signUp(email: string, password: string, firstName?: string
         `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
       data: {
         first_name: firstName || '',
+        affiliate_code: affiliateCode || null,
       },
     },
   });
 
   if (error) {
     return { error: error.message };
+  }
+
+  // Track affiliate referral if affiliate code provided
+  if (affiliateCode && data.user) {
+    const { data: affiliate } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('affiliate_code', affiliateCode)
+      .single();
+
+    if (affiliate) {
+      await supabase.from('affiliate_customers').insert({
+        affiliate_id: affiliate.id,
+        customer_id: data.user.id,
+        referral_source: 'signup_link',
+      }).catch(() => null); // Ignore if duplicate
+    }
   }
 
   return { data };
