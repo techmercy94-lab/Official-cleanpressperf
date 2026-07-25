@@ -70,9 +70,6 @@ export function SignUpForm() {
           emailRedirectTo:
             process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
             `${window.location.origin}/auth/callback`,
-          data: {
-            affiliate_code: referralCode || null,
-          },
         },
       })
 
@@ -80,8 +77,25 @@ export function SignUpForm() {
         throw signUpError
       }
 
+      if (!data.user) {
+        throw new Error('User creation failed')
+      }
+
+      // Automatically create profile row after signup
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: data.user.email,
+          created_at: new Date().toISOString(),
+        })
+
+      if (profileError && !profileError.message.includes('duplicate')) {
+        console.error('Error creating profile:', profileError)
+      }
+
       // Track affiliate referral if code provided
-      if (referralCode && data.user) {
+      if (referralCode) {
         try {
           const { data: affiliate } = await supabase
             .from('profiles')
@@ -105,7 +119,7 @@ export function SignUpForm() {
       }
 
       // Register user as an affiliate
-      if (isAffiliateSignup && data.user) {
+      if (isAffiliateSignup) {
         const affiliateUsername = username
           .trim()
           .toLowerCase()
