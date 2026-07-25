@@ -79,6 +79,18 @@ export function SignUpForm() {
       if (signUpError) {
         throw signUpError
       }
+      if (data.user) {
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .upsert({
+      id: data.user.id,
+      email: data.user.email,
+    })
+
+  if (profileError) {
+    throw new Error(profileError.message)
+  }
+}
 
       // Track affiliate referral if code provided
       if (referralCode && data.user) {
