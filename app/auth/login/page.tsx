@@ -39,7 +39,7 @@ export default function Page() {
         },
       })
       if (error) throw error
-      router.push('/protected')
+      router.push('/')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {
@@ -53,9 +53,9 @@ export default function Page() {
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-2xl">Login</CardTitle>
+              <CardTitle className="text-2xl">Welcome to CleanPressperf</CardTitle>
               <CardDescription>
-                Enter your email below to login to your account
+                Enter your credentials to access your account and start earning
               </CardDescription>
             </CardHeader>
             <CardContent>
