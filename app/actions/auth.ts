@@ -21,11 +21,27 @@ export async function getProfile() {
     return null;
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
+
+  // If profile doesn't exist, create it automatically
+  if (!data && !error) {
+    const { error: createError, data: newProfile } = await supabase
+      .from('profiles')
+      .insert({
+        id: user.id,
+        email: user.email,
+      })
+      .select()
+      .maybeSingle();
+
+    if (!createError) {
+      return newProfile;
+    }
+  }
 
   if (error) {
     console.error('Error fetching profile:', error);
@@ -60,6 +76,36 @@ export async function updateProfile(
   return { success: true };
 }
 
+export async function createUserProfile(userId: string, email: string) {
+  const supabase = await createClient();
+
+  // Check if profile already exists
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    return { success: true };
+  }
+
+  // Create profile for new user
+  const { error } = await supabase
+    .from('profiles')
+    .insert({
+      id: userId,
+      email,
+    });
+
+  if (error && !error.message?.includes('duplicate')) {
+    console.error('Error creating profile:', error);
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
 export async function signUp(email: string, password: string, firstName?: string, affiliateCode?: string) {
   const supabase = await createClient();
 
@@ -81,20 +127,28 @@ export async function signUp(email: string, password: string, firstName?: string
     return { error: error.message };
   }
 
-  // Track affiliate referral if affiliate code provided
-  if (affiliateCode && data.user) {
-    const { data: affiliate } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('affiliate_code', affiliateCode)
-      .single();
+  // Create profile immediately after signup (don't wait for trigger)
+  if (data.user) {
+    await createUserProfile(data.user.id, email).catch(err => {
+      console.error('Profile creation failed (non-blocking):', err);
+    });
 
-    if (affiliate) {
-      await supabase.from('affiliate_customers').insert({
-        affiliate_id: affiliate.id,
-        customer_id: data.user.id,
-        referral_source: 'signup_link',
-      }).catch(() => null); // Ignore if duplicate
+    // Track affiliate referral if affiliate code provided
+    if (affiliateCode) {
+      const { data: affiliate } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('affiliate_code', affiliateCode)
+        .maybeSingle()
+        .catch(() => ({ data: null }));
+
+      if (affiliate) {
+        await supabase.from('affiliate_customers').insert({
+          affiliate_id: affiliate.id,
+          customer_id: data.user.id,
+          referral_source: 'signup_link',
+        }).catch(() => null);
+      }
     }
   }
 
