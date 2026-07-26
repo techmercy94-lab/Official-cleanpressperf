@@ -9,7 +9,7 @@ export async function createCheckoutSession(
   customerEmail: string
 ) {
   const supabase = await createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://official-cleanpressperf.vercel.app';
 
   try {
     const session = await stripe.checkout.sessions.create({

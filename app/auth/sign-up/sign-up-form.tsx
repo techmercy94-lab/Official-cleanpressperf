@@ -87,7 +87,7 @@ export function SignUpForm() {
             .from('profiles')
             .select('id')
             .eq('affiliate_code', referralCode)
-            .single()
+            .maybeSingle()
 
           if (affiliate) {
             await supabase
