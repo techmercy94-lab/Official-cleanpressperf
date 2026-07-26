@@ -60,7 +60,12 @@ export async function updateProfile(
   return { success: true };
 }
 
-export async function signUp(email: string, password: string, firstName?: string, affiliateCode?: string) {
+export async function signUp(
+  email: string,
+  password: string,
+  firstName?: string,
+  affiliateCode?: string
+) {
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signUp({
@@ -83,18 +88,22 @@ export async function signUp(email: string, password: string, firstName?: string
 
   // Track affiliate referral if affiliate code provided
   if (affiliateCode && data.user) {
-    const { data: affiliate } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('affiliate_code', affiliateCode)
-      .single();
+    try {
+      const { data: affiliate } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('affiliate_code', affiliateCode)
+        .single();
 
-    if (affiliate) {
-      await supabase.from('affiliate_customers').insert({
-        affiliate_id: affiliate.id,
-        customer_id: data.user.id,
-        referral_source: 'signup_link',
-      }).catch(() => null); // Ignore if duplicate
+      if (affiliate) {
+        await supabase.from('affiliate_customers').insert({
+          affiliate_id: affiliate.id,
+          customer_id: data.user.id,
+          referral_source: 'signup_link',
+        }).catch(() => null); // Ignore if duplicate
+      }
+    } catch {
+      // Ignore affiliate tracking errors
     }
   }
 

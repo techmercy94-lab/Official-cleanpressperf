@@ -104,30 +104,36 @@ export function SignUpForm() {
         }
       }
 
-      // Register user as an affiliate
+      // Register user as an affiliate on server
       if (isAffiliateSignup && data.user) {
+        // The profile is created via auth trigger on Supabase
+        // Now register as affiliate via server action
         const affiliateUsername = username
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9_]/g, '')
 
-        const affiliateResult = await registerAsAffiliate(
-          data.user.id,
-          affiliateUsername
-        )
-
-        if (affiliateResult?.error) {
-          setError(
-            typeof affiliateResult.error === 'string'
-              ? affiliateResult.error
-              : 'Failed to register as affiliate'
+        try {
+          const affiliateResult = await registerAsAffiliate(
+            data.user.id,
+            affiliateUsername
           )
 
-          setIsLoading(false)
-          return
+          if (affiliateResult?.error) {
+            setError(
+              typeof affiliateResult.error === 'string'
+                ? affiliateResult.error
+                : 'Failed to register as affiliate'
+            )
+            setIsLoading(false)
+            return
+          }
+        } catch (affiliateErr) {
+          console.error('Affiliate registration error:', affiliateErr)
+          // Don't block signup if affiliate registration fails
         }
 
-        router.push('/affiliate')
+        router.push('/affiliate/dashboard')
         return
       }
 

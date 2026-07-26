@@ -1,6 +1,3 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { getSession } from '@/app/actions/auth';
@@ -8,52 +5,18 @@ import { getAffiliateStats, getAffiliateCommissions } from '@/app/actions/affili
 import { formatNaira } from '@/lib/utils-custom';
 import { BarChart3, TrendingUp, Users, Wallet } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
-function AffiliateDashboard() {
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [commissions, setCommissions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const session = await getSession();
-        if (!session) {
-          window.location.href = '/auth/login';
-          return;
-        }
-
-        setUser(session);
-
-        const [statsData, commissionsData] = await Promise.all([
-          getAffiliateStats(session.id),
-          getAffiliateCommissions(session.id),
-        ]);
-
-        setStats(statsData);
-        setCommissions(commissionsData);
-      } catch (error) {
-        console.error('Error loading dashboard:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-        <Footer />
-      </div>
-    );
+async function AffiliateDashboard() {
+  const session = await getSession();
+  if (!session) {
+    redirect('/auth/login');
   }
+
+  const [stats, commissions] = await Promise.all([
+    getAffiliateStats(session.id),
+    getAffiliateCommissions(session.id),
+  ]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
