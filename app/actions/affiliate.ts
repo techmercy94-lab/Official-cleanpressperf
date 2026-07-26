@@ -1,3 +1,11 @@
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+
+function generateAffiliateCode(): string {
+  return 'AFF_' + Math.random().toString(36).substring(2, 11).toUpperCase();
+}
+
 export async function registerAsAffiliate(
   userId: string,
   username?: string,
