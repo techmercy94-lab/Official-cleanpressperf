@@ -60,6 +60,8 @@ export function SignUpForm() {
     }
 
     try {
+      console.log('[v0] Starting signup with email:', email.trim().toLowerCase())
+      
       // Use server action for signup
       const result = await signUp(
         email.trim().toLowerCase(),
@@ -69,11 +71,20 @@ export function SignUpForm() {
       )
 
       if (result.error) {
+        console.error('[v0] Signup error:', result.error)
         setError(result.error)
         setIsLoading(false)
         return
       }
 
+      if (!result.data?.user) {
+        console.error('[v0] Signup completed but no user returned')
+        setError('Signup failed: Account was not created properly')
+        setIsLoading(false)
+        return
+      }
+
+      console.log('[v0] Signup successful, user ID:', result.data.user.id)
       const data = result.data
 
       // For affiliate signup, register as affiliate

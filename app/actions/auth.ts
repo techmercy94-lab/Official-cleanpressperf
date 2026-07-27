@@ -109,8 +109,13 @@ export async function createUserProfile(userId: string, email: string) {
 export async function signUp(email: string, password: string, firstName?: string, affiliateCode?: string) {
   const supabase = await createClient();
 
+  // Normalize email to match login
+  const normalizedEmail = email.trim().toLowerCase();
+
+  console.log('[v0] SignUp attempt:', normalizedEmail);
+
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: normalizedEmail,
     password,
     options: {
       data: {
@@ -121,31 +126,37 @@ export async function signUp(email: string, password: string, firstName?: string
   });
 
   if (error) {
+    console.error('[v0] SignUp error:', error.message);
     return { error: error.message };
   }
 
+  if (!data.user) {
+    console.error('[v0] SignUp returned no user');
+    return { error: 'Signup failed: No user created' };
+  }
+
+  console.log('[v0] SignUp successful, user ID:', data.user.id);
+
   // Create profile immediately after signup (don't wait for trigger)
-  if (data.user) {
-    await createUserProfile(data.user.id, email).catch(err => {
-      console.error('Profile creation failed (non-blocking):', err);
-    });
+  await createUserProfile(data.user.id, normalizedEmail).catch(err => {
+    console.error('[v0] Profile creation failed (non-blocking):', err);
+  });
 
-    // Track affiliate referral if affiliate code provided
-    if (affiliateCode) {
-      const { data: affiliate } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('affiliate_code', affiliateCode)
-        .maybeSingle()
-        .catch(() => ({ data: null }));
+  // Track affiliate referral if affiliate code provided
+  if (affiliateCode) {
+    const { data: affiliate } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('affiliate_code', affiliateCode)
+      .maybeSingle()
+      .catch(() => ({ data: null }));
 
-      if (affiliate) {
-        await supabase.from('affiliate_customers').insert({
-          affiliate_id: affiliate.id,
-          customer_id: data.user.id,
-          referral_source: 'signup_link',
-        }).catch(() => null);
-      }
+    if (affiliate) {
+      await supabase.from('affiliate_customers').insert({
+        affiliate_id: affiliate.id,
+        customer_id: data.user.id,
+        referral_source: 'signup_link',
+      }).catch(() => null);
     }
   }
 
