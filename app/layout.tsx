@@ -4,8 +4,8 @@ import { AuthProvider } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'CleanPressperf - Luxury Perfume & Affiliate Program',
+  description: 'Premium luxury perfumes with exclusive affiliate program. Earn 15% commission on every referral.',
   generator: 'v0.app',
   icons: {
     icon: [
