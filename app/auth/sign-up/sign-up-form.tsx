@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { registerAsAffiliate } from '@/app/actions/affiliate'
 
 export function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -104,34 +103,27 @@ export function SignUpForm() {
         }
       }
 
-      // Register user as an affiliate
+      // For affiliate signup, redirect to affiliate registration page
       if (isAffiliateSignup && data.user) {
         const affiliateUsername = username
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9_]/g, '')
 
-        const affiliateResult = await registerAsAffiliate(
-          data.user.id,
-          affiliateUsername
+        // Redirect to affiliate confirmation page with user ID and username
+        router.push(
+          `/affiliate/confirm?userId=${data.user.id}&username=${affiliateUsername}`
         )
-
-        if (affiliateResult?.error) {
-          setError(
-            typeof affiliateResult.error === 'string'
-              ? affiliateResult.error
-              : 'Failed to register as affiliate'
-          )
-
-          setIsLoading(false)
-          return
-        }
-
-        router.push('/affiliate')
         return
       }
 
-      router.push('/account')
+      // For regular signup, check if email confirmation is needed
+      if (data.session) {
+        router.push('/account')
+      } else {
+        // Email confirmation required
+        router.push('/auth/verify-email')
+      }
     } catch (error: unknown) {
       setError(
         error instanceof Error
