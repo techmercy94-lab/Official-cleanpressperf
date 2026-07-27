@@ -1,6 +1,6 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { signUp, registerAsAffiliate } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -44,8 +44,6 @@ export function SignUpForm() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const supabase = createClient()
-
     setIsLoading(true)
     setError(null)
 
@@ -62,65 +60,44 @@ export function SignUpForm() {
     }
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+      // Use server action for signup
+      const result = await signUp(
+        email.trim().toLowerCase(),
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            affiliate_code: referralCode || null,
-          },
-        },
-      })
+        username,
+        referralCode || undefined
+      )
 
-      if (signUpError) {
-        throw signUpError
+      if (result.error) {
+        setError(result.error)
+        setIsLoading(false)
+        return
       }
 
-      // Track affiliate referral if code provided
-      if (referralCode && data.user) {
-        try {
-          const { data: affiliate } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('affiliate_code', referralCode)
-            .maybeSingle()
+      const data = result.data
 
-          if (affiliate) {
-            await supabase
-              .from('affiliate_customers')
-              .insert({
-                affiliate_id: affiliate.id,
-                customer_id: data.user.id,
-                referral_source: 'signup_link',
-              })
-              .catch(() => null)
-          }
-        } catch (err) {
-          console.error('Error tracking affiliate:', err)
-        }
-      }
-
-      // For affiliate signup, redirect to affiliate registration page
+      // For affiliate signup, register as affiliate
       if (isAffiliateSignup && data.user) {
         const affiliateUsername = username
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9_]/g, '')
 
-        // Redirect to affiliate confirmation page with user ID and username
-        router.push(
-          `/affiliate/confirm?userId=${data.user.id}&username=${affiliateUsername}`
+        const affiliateResult = await registerAsAffiliate(
+          data.user.id,
+          affiliateUsername
         )
-        return
-      }
 
-      // For regular signup, check if email confirmation is needed
-      if (data.session) {
-        router.push('/account')
+        if (affiliateResult?.success) {
+          router.push('/affiliate/dashboard')
+        } else {
+          setError(affiliateResult?.error || 'Failed to register as affiliate')
+          setIsLoading(false)
+          return
+        }
       } else {
-        // Email confirmation required
-        router.push('/auth/verify-email')
+        // Regular signup - redirect to account
+        router.push('/account')
       }
     } catch (error: unknown) {
       setError(

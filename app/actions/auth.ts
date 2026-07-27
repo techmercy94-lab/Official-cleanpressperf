@@ -171,6 +171,12 @@ export async function signIn(email: string, password: string) {
   return { data };
 }
 
+export async function registerAsAffiliate(userId: string, username?: string) {
+  // Import here to avoid circular dependency
+  const { registerAsAffiliate: registerAffiliate } = await import('@/app/actions/affiliate');
+  return registerAffiliate(userId, username);
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
