@@ -113,7 +113,6 @@ export async function signUp(email: string, password: string, firstName?: string
     email,
     password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://official-cleanpressperf.vercel.app'}/auth/callback`,
       data: {
         first_name: firstName || '',
         affiliate_code: affiliateCode || null,
