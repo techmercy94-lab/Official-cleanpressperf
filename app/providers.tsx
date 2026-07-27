@@ -15,12 +15,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
     // Get initial session
     const getSession = async () => {
       try {
+        // Only create Supabase client inside useEffect (browser-only)
+        const supabase = createClient()
         const {
           data: { session },
         } = await supabase.auth.getSession()
@@ -33,11 +34,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     getSession()
-  }, [supabase])
+  }, [])
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      setUser(null)
+    }
   }
 
   return (
