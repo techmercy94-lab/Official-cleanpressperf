@@ -48,7 +48,6 @@ export default function AffiliateDashboard() {
   const [profile, setProfile] = useState<AffiliateProfile | null>(null)
   const [pageLoading, setPageLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     if (!loading && !user) {
@@ -66,6 +65,7 @@ export default function AffiliateDashboard() {
       setPageLoading(true)
       setError(null)
 
+      const supabase = createClient()
       const { data, error: fetchError } = await supabase
         .from('affiliates')
         .select('*')

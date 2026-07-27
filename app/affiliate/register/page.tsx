@@ -31,7 +31,6 @@ export default function AffiliateUpgradePage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     if (!loading && !user) {
@@ -54,6 +53,8 @@ export default function AffiliateUpgradePage() {
     try {
       setIsLoading(true)
       setError(null)
+
+      const supabase = createClient()
 
       // Check if already an affiliate
       const { data: existingProfile } = await supabase
