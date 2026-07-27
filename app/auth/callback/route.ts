@@ -17,9 +17,10 @@ export async function GET(request: NextRequest) {
         // Check if profile exists
         const { data: existingProfile } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, is_affiliate')
           .eq('id', user.id)
           .maybeSingle()
+          .catch(() => ({ data: null }))
 
         // If profile doesn't exist, create it
         if (!existingProfile) {
@@ -34,6 +35,12 @@ export async function GET(request: NextRequest) {
               console.error('Error creating profile:', err)
             })
         }
+
+        // Check user metadata for affiliate status
+        const isAffiliate = user.user_metadata?.is_affiliate || existingProfile?.is_affiliate
+        const redirectPath = isAffiliate ? '/affiliate/dashboard' : next
+        
+        return NextResponse.redirect(`${origin}${redirectPath}`)
       }
       
       return NextResponse.redirect(`${origin}${next}`)
