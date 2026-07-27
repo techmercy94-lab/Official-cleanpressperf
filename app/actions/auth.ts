@@ -155,13 +155,17 @@ export async function signUp(email: string, password: string, firstName?: string
 export async function signIn(email: string, password: string) {
   const supabase = await createClient();
 
+  // Normalize email - trim and lowercase
+  const normalizedEmail = email.trim().toLowerCase();
+
   const { data, error } = await supabase.auth.signInWithPassword({
-    email,
+    email: normalizedEmail,
     password,
   });
 
   if (error) {
-    return { error: error.message };
+    console.error('[v0] SignIn error:', error.message);
+    return { error: 'Invalid login credentials' };
   }
 
   return { data };
