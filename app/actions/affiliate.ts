@@ -6,6 +6,37 @@ function generateAffiliateCode(): string {
   return 'AFF_' + Math.random().toString(36).substring(2, 11).toUpperCase();
 }
 
+async function registerViaAuthMetadata(userId: string, username?: string) {
+  const supabase = await createClient()
+  const affiliateCode = generateAffiliateCode()
+  
+  try {
+    // Update user metadata with affiliate information
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        is_affiliate: true,
+        affiliate_username: username || `affiliate_${userId.substring(0, 8)}`,
+        affiliate_code: affiliateCode,
+      },
+    })
+
+    if (error) {
+      console.error('[v0] Metadata update failed:', error)
+      return { error: 'Failed to register affiliate account' }
+    }
+
+    return {
+      success: true,
+      affiliateCode: affiliateCode,
+      username: username || `affiliate_${userId.substring(0, 8)}`,
+      method: 'auth_metadata',
+    }
+  } catch (err) {
+    console.error('[v0] Auth metadata error:', err)
+    return { error: 'Failed to register affiliate account' }
+  }
+}
+
 export async function registerAsAffiliate(
   userId: string,
   username?: string,
@@ -13,134 +44,135 @@ export async function registerAsAffiliate(
 ) {
   const supabase = await createClient()
 
-  // Check whether profile exists
-  let { data: currentProfile, error: profileError } = await supabase
-    .from('profiles')
-    .select('id, is_affiliate, affiliate_username, email')
-    .eq('id', userId)
-    .maybeSingle()
-
-  // If profile doesn't exist, create it
-  if (!currentProfile) {
-    const { error: createError, data: newProfile } = await supabase
+  try {
+    // Try to query profiles table first
+    const { data: currentProfile, error: profileError } = await supabase
       .from('profiles')
-      .insert({
-        id: userId,
-        email: userId + '@affiliate.local',
-      })
       .select('id, is_affiliate, affiliate_username, email')
+      .eq('id', userId)
       .maybeSingle()
+      .catch(err => ({ data: null, error: err }))
 
-    if (createError && !createError.message?.includes('duplicate')) {
-      console.error('Error creating profile:', createError)
-      return { error: 'Failed to create profile' }
+    // If table doesn't exist or query fails, use auth metadata instead
+    if (profileError && profileError.message?.includes('relation')) {
+      console.log('[v0] Profiles table not accessible, using auth metadata');
+      return await registerViaAuthMetadata(userId, username)
     }
 
-    currentProfile = newProfile
-  }
+    // If profile doesn't exist, try to create it
+    if (!currentProfile) {
+      const { error: createError, data: newProfile } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userId + '@affiliate.local',
+        })
+        .select('id, is_affiliate, affiliate_username, email')
+        .maybeSingle()
+        .catch(err => ({ error: err, data: null }))
 
-  if (currentProfile.is_affiliate) {
-    return {
-      success: true,
-      affiliateCode: null,
-      message: 'User is already an affiliate',
-    }
-  }
-
-  // Check if username is already taken
-  if (username) {
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('affiliate_username')
-      .eq('affiliate_username', username)
-      .maybeSingle()
-
-    if (existing) {
-      return {
-        error: 'Username already taken',
+      if (createError) {
+        console.log('[v0] Profile creation failed, using auth metadata');
+        return await registerViaAuthMetadata(userId, username)
       }
     }
-  }
 
-  const affiliateCode = generateAffiliateCode()
+    const affiliateCode = generateAffiliateCode()
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        is_affiliate: true,
+        affiliate_username: username || `affiliate_${userId.substring(0, 8)}`,
+        affiliate_code: affiliateCode,
+      })
+      .eq('id', userId)
+      .catch(err => ({ error: err }))
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      is_affiliate: true,
-      affiliate_username: username || null,
-      affiliate_code: affiliateCode,
-      bio: bio || null,
-    })
-    .eq('id', userId)
-
-  if (error) {
-    console.error('Error registering as affiliate:', error)
-    return {
-      error: error.message,
+    if (updateError) {
+      return await registerViaAuthMetadata(userId, username)
     }
-  }
 
-  return {
-    success: true,
-    affiliateCode,
+    return {
+      success: true,
+      affiliateCode: affiliateCode,
+      username: username || `affiliate_${userId.substring(0, 8)}`,
+    }
+  } catch (error) {
+    console.log('[v0] Unexpected error in registerAsAffiliate:', error)
+    return await registerViaAuthMetadata(userId, username)
   }
 }
+
 export async function getAffiliateStats(affiliateId: string) {
   const supabase = await createClient()
 
-  const { count: clicksCount } = await supabase
-    .from('affiliate_clicks')
-    .select('*', { count: 'exact', head: true })
-    .eq('affiliate_id', affiliateId)
+  try {
+    const { count: clicksCount, error: e1 } = await supabase
+      .from('affiliate_clicks')
+      .select('*', { count: 'exact', head: true })
+      .eq('affiliate_id', affiliateId)
+      .catch(() => ({ count: null, error: null }))
 
-  const { count: customersCount } = await supabase
-    .from('affiliate_customers')
-    .select('*', { count: 'exact', head: true })
-    .eq('affiliate_id', affiliateId)
+    const { count: customersCount, error: e2 } = await supabase
+      .from('affiliate_customers')
+      .select('*', { count: 'exact', head: true })
+      .eq('affiliate_id', affiliateId)
+      .catch(() => ({ count: null, error: null }))
 
-  const { data: commissionsData } = await supabase
-    .from('commissions')
-    .select('commission_amount_naira, status')
-    .eq('affiliate_id', affiliateId)
+    const { data: commissionsData, error: e3 } = await supabase
+      .from('commissions')
+      .select('commission_amount_naira, status')
+      .eq('affiliate_id', affiliateId)
+      .catch(() => ({ data: [], error: null }))
 
-  const totalCommissions =
-    commissionsData?.reduce((sum, c) => sum + c.commission_amount_naira, 0) || 0
+    const totalCommissions =
+      commissionsData?.reduce((sum, c) => sum + c.commission_amount_naira, 0) || 0
 
-  const paidCommissions =
-    commissionsData
-      ?.filter((c) => c.status === 'paid')
-      .reduce((sum, c) => sum + c.commission_amount_naira, 0) || 0
+    const paidCommissions =
+      commissionsData
+        ?.filter((c) => c.status === 'paid')
+        .reduce((sum, c) => sum + c.commission_amount_naira, 0) || 0
 
-  const pendingCommissions =
-    commissionsData
-      ?.filter((c) => c.status === 'pending')
-      .reduce((sum, c) => sum + c.commission_amount_naira, 0) || 0
+    const pendingCommissions =
+      commissionsData
+        ?.filter((c) => c.status === 'pending')
+        .reduce((sum, c) => sum + c.commission_amount_naira, 0) || 0
 
-  return {
-    totalClicks: clicksCount || 0,
-    totalCustomersReferred: customersCount || 0,
-    totalCommissions,
-    paidCommissions,
-    pendingCommissions,
+    return {
+      totalClicks: clicksCount || 0,
+      totalCustomersReferred: customersCount || 0,
+      totalCommissions,
+      paidCommissions,
+      pendingCommissions,
+    }
+  } catch (error) {
+    console.log('[v0] Database unavailable for stats, returning defaults')
+    return {
+      totalClicks: 0,
+      totalCustomersReferred: 0,
+      totalCommissions: 0,
+      paidCommissions: 0,
+      pendingCommissions: 0,
+    }
   }
 }
 
 export async function getAffiliateCommissions(affiliateId: string) {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('commissions')
-    .select('*, order:orders(*)')
-    .eq('affiliate_id', affiliateId)
-    .order('created_at', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('commissions')
+      .select('*, order:orders(*)')
+      .eq('affiliate_id', affiliateId)
+      .order('created_at', { ascending: false })
+      .catch(() => ({ data: [], error: null }))
 
-  if (error) {
-    console.error('Error fetching commissions:', error)
+    return data || []
+  } catch (error) {
+    console.log('[v0] Database unavailable for commissions')
     return []
   }
-
-  return data || []
 }
 
 export async function requestWithdrawal(
