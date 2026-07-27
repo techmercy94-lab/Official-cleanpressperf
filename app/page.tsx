@@ -76,14 +76,26 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Perfume Collection Image */}
+      <section className="bg-slate-950 py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <img 
+            src="/perfumes.png" 
+            alt="CleanPressperf Luxury Perfume Collection - Noir, Azure, Solstice, Amethyst"
+            className="w-full h-auto rounded-lg shadow-2xl"
+          />
+        </div>
+      </section>
+
       {/* Featured Products Section */}
       <section id="products" className="bg-slate-900 py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Featured Collection</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <ProductCard name="Midnight Elegance" price="$4" desc="Rich woody notes with hints of jasmine" />
-            <ProductCard name="Citrus Serenity" price="$4" desc="Refreshing citrus blend with white musk" />
-            <ProductCard name="Rose Luxe" price="$4" desc="Romantic rose bouquet with oud undertones" />
+          <h2 className="text-3xl font-bold text-center mb-12">Our Signature Collection</h2>
+          <div className="grid md:grid-cols-4 gap-6">
+            <ProductCard name="Noir" price="$4" desc="Deep mystery with dark musk and oud. The essence of sophistication." />
+            <ProductCard name="Azure" price="$4" desc="Crisp clarity with blue tangerine and sea salt. Pure refreshment." />
+            <ProductCard name="Solstice" price="$4" desc="Warm radiance with golden amber and vanilla. Captivating elegance." />
+            <ProductCard name="Amethyst" price="$4" desc="Regal enchantment with violet and precious woods. Luxury personified." />
           </div>
         </div>
       </section>
