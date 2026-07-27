@@ -6,7 +6,7 @@ import { Footer } from '@/components/footer';
 import { getSession } from '@/app/actions/auth';
 import { getAffiliateStats, getAffiliateCommissions } from '@/app/actions/affiliate';
 import { formatNaira } from '@/lib/utils-custom';
-import { BarChart3, TrendingUp, Users, Wallet } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Wallet, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 
 function AffiliateDashboard() {
@@ -14,6 +14,9 @@ function AffiliateDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [affiliateCode, setAffiliateCode] = useState<string>('');
+  const [referralLink, setReferralLink] = useState<string>('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -25,6 +28,15 @@ function AffiliateDashboard() {
         }
 
         setUser(session);
+
+        // Generate affiliate code from user ID (or get from metadata)
+        const code = session.user_metadata?.affiliate_code || `AFF_${session.id.substring(0, 8).toUpperCase()}`;
+        setAffiliateCode(code);
+
+        // Generate referral link
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://official-cleanpressperf.vercel.app';
+        const link = `${baseUrl}/auth/sign-up?ref=${code}`;
+        setReferralLink(link);
 
         const [statsData, commissionsData] = await Promise.all([
           getAffiliateStats(session.id),
@@ -42,6 +54,16 @@ function AffiliateDashboard() {
 
     loadData();
   }, []);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -64,6 +86,35 @@ function AffiliateDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Affiliate Dashboard</h1>
           <p className="text-muted-foreground">Track your earnings and referrals</p>
+        </div>
+
+        {/* Referral Link Section */}
+        <div className="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 rounded-lg p-6 mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Your Referral Link</h2>
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div className="flex-1 bg-background border border-border rounded-lg p-3 font-mono text-sm break-all">
+              {referralLink}
+            </div>
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-secondary transition whitespace-nowrap"
+            >
+              {copied ? (
+                <>
+                  <Check size={18} />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={18} />
+                  <span>Copy Link</span>
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-3">
+            Share this link with friends to earn commissions on their purchases
+          </p>
         </div>
 
         {/* Stats Grid */}

@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ShoppingCart, Menu, X, User } from 'lucide-react';
-import { getSession } from '@/app/actions/auth';
+import { ShoppingCart, Menu, X, User, LogOut } from 'lucide-react';
+import { getSession, signOut } from '@/app/actions/auth';
 import { useEffect } from 'react';
 
 export function Header() {
@@ -47,15 +47,25 @@ export function Header() {
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                <Link href="/profile" className="p-2 hover:bg-muted rounded-lg transition">
+                <Link href="/profile" className="p-2 hover:bg-muted rounded-lg transition" title="Profile">
                   <User size={20} />
                 </Link>
                 <Link
                   href="/cart"
                   className="p-2 hover:bg-muted rounded-lg transition relative"
+                  title="Cart"
                 >
                   <ShoppingCart size={20} />
                 </Link>
+                <button
+                  onClick={async () => {
+                    await signOut();
+                  }}
+                  className="p-2 hover:bg-muted rounded-lg transition"
+                  title="Logout"
+                >
+                  <LogOut size={20} />
+                </button>
               </>
             ) : (
               <>
