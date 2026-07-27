@@ -107,60 +107,71 @@ export async function createUserProfile(userId: string, email: string) {
 }
 
 export async function signUp(email: string, password: string, firstName?: string, affiliateCode?: string) {
-  const supabase = await createClient();
-
   // Normalize email to match login
   const normalizedEmail = email.trim().toLowerCase();
 
   console.log('[v0] SignUp attempt:', normalizedEmail);
 
-  const { data, error } = await supabase.auth.signUp({
-    email: normalizedEmail,
-    password,
-    options: {
-      data: {
+  try {
+    // Use service role admin API to create user immediately without email confirmation
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+    const adminClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data, error } = await adminClient.auth.admin.createUser({
+      email: normalizedEmail,
+      password,
+      email_confirm: true, // Mark email as confirmed immediately
+      user_metadata: {
         first_name: firstName || '',
         affiliate_code: affiliateCode || null,
       },
-    },
-  });
+    });
 
-  if (error) {
-    console.error('[v0] SignUp error:', error.message);
-    return { error: error.message };
-  }
-
-  if (!data.user) {
-    console.error('[v0] SignUp returned no user');
-    return { error: 'Signup failed: No user created' };
-  }
-
-  console.log('[v0] SignUp successful, user ID:', data.user.id);
-
-  // Create profile immediately after signup (don't wait for trigger)
-  await createUserProfile(data.user.id, normalizedEmail).catch(err => {
-    console.error('[v0] Profile creation failed (non-blocking):', err);
-  });
-
-  // Track affiliate referral if affiliate code provided
-  if (affiliateCode) {
-    const { data: affiliate } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('affiliate_code', affiliateCode)
-      .maybeSingle()
-      .catch(() => ({ data: null }));
-
-    if (affiliate) {
-      await supabase.from('affiliate_customers').insert({
-        affiliate_id: affiliate.id,
-        customer_id: data.user.id,
-        referral_source: 'signup_link',
-      }).catch(() => null);
+    if (error) {
+      console.error('[v0] SignUp error:', error.message);
+      return { error: error.message };
     }
-  }
 
-  return { data };
+    if (!data.user) {
+      console.error('[v0] SignUp returned no user');
+      return { error: 'Signup failed: No user created' };
+    }
+
+    console.log('[v0] SignUp successful, user ID:', data.user.id);
+
+    // Create profile immediately after signup
+    await createUserProfile(data.user.id, normalizedEmail).catch(err => {
+      console.error('[v0] Profile creation failed (non-blocking):', err);
+    });
+
+    // Track affiliate referral if affiliate code provided
+    if (affiliateCode) {
+      const supabase = await createClient();
+      const { data: affiliate } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('affiliate_code', affiliateCode)
+        .maybeSingle()
+        .catch(() => ({ data: null }));
+
+      if (affiliate) {
+        await supabase.from('affiliate_customers').insert({
+          affiliate_id: affiliate.id,
+          customer_id: data.user.id,
+          referral_source: 'signup_link',
+        }).catch(() => null);
+      }
+    }
+
+    return { data };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Signup failed';
+    console.error('[v0] SignUp exception:', errMsg);
+    return { error: errMsg };
+  }
 }
 
 export async function signIn(email: string, password: string) {
