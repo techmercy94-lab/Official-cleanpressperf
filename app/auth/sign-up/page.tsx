@@ -21,73 +21,55 @@ export default function Page() {
   const [repeatPassword, setRepeatPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
   const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  if (isLoading) return
+    if (isLoading) return
 
-  setError(null)
+    setError(null)
 
-  if (!email.trim()) {
-    setError('Please enter your email.')
-    return
-  }
-
-  if (password.length < 6) {
-    setError('Password must be at least 6 characters.')
-    return
-  }
-
-  if (password !== repeatPassword) {
-    setError('Passwords do not match.')
-    return
-  }
-
-  setIsLoading(true)
-
-  try {
-    const supabase = createClient()
-
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error) throw error
-
-    if (data.user) {
-      router.push('/auth/sign-up-success')
-      router.refresh()
+    if (!email.trim()) {
+      setError('Please enter your email.')
       return
     }
 
-    setError('Unable to create account. Please try again.')
-  } catch (err: any) {
-    setError(err?.message || 'Something went wrong.')
-  } finally {
-    setIsLoading(false)
-  }
-}
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
+
+    if (password !== repeatPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const supabase = createClient()
+
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
-            `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
+
       if (error) throw error
-      router.push('/auth/sign-up-success')
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+
+      if (data.user) {
+        router.push('/auth/sign-up-success')
+        router.refresh()
+        return
+      }
+
+      setError('Unable to create account. Please try again.')
+    } catch (err: any) {
+      setError(err?.message || 'Something went wrong.')
     } finally {
       setIsLoading(false)
     }
@@ -102,9 +84,11 @@ export default function Page() {
               <CardTitle className="text-2xl">Sign up</CardTitle>
               <CardDescription>Create a new account</CardDescription>
             </CardHeader>
+
             <CardContent>
               <form onSubmit={handleSignUp}>
                 <div className="flex flex-col gap-6">
+
                   <div className="grid gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -116,10 +100,9 @@ export default function Page() {
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
+
                   <div className="grid gap-2">
-                    <div className="flex items-center">
-                      <Label htmlFor="password">Password</Label>
-                    </div>
+                    <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
                       type="password"
@@ -128,10 +111,11 @@ export default function Page() {
                       onChange={(e) => setPassword(e.target.value)}
                     />
                   </div>
+
                   <div className="grid gap-2">
-                    <div className="flex items-center">
-                      <Label htmlFor="repeat-password">Repeat Password</Label>
-                    </div>
+                    <Label htmlFor="repeat-password">
+                      Repeat Password
+                    </Label>
                     <Input
                       id="repeat-password"
                       type="password"
@@ -140,11 +124,23 @@ export default function Page() {
                       onChange={(e) => setRepeatPassword(e.target.value)}
                     />
                   </div>
-                  {error && <p className="text-sm text-red-500">{error}</p>}
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating an account...' : 'Sign up'}
+
+                  {error && (
+                    <p className="text-sm text-red-500">{error}</p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading
+                      ? 'Creating an account...'
+                      : 'Sign up'}
                   </Button>
+
                 </div>
+
                 <div className="mt-4 text-center text-sm">
                   Already have an account?{' '}
                   <Link
@@ -154,8 +150,10 @@ export default function Page() {
                     Login
                   </Link>
                 </div>
+
               </form>
             </CardContent>
+
           </Card>
         </div>
       </div>
