@@ -24,16 +24,55 @@ export default function Page() {
   const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const supabase = createClient()
-    setIsLoading(true)
-    setError(null)
+  e.preventDefault()
 
-    if (password !== repeatPassword) {
-      setError('Passwords do not match')
-      setIsLoading(false)
+  if (isLoading) return
+
+  setError(null)
+
+  if (!email.trim()) {
+    setError('Please enter your email.')
+    return
+  }
+
+  if (password.length < 6) {
+    setError('Password must be at least 6 characters.')
+    return
+  }
+
+  if (password !== repeatPassword) {
+    setError('Passwords do not match.')
+    return
+  }
+
+  setIsLoading(true)
+
+  try {
+    const supabase = createClient()
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) throw error
+
+    if (data.user) {
+      router.push('/auth/sign-up-success')
+      router.refresh()
       return
     }
+
+    setError('Unable to create account. Please try again.')
+  } catch (err: any) {
+    setError(err?.message || 'Something went wrong.')
+  } finally {
+    setIsLoading(false)
+  }
+}
 
     try {
       const { error } = await supabase.auth.signUp({
