@@ -30,7 +30,7 @@ export function ProductCard({ name, price, desc }: ProductCardProps) {
           src={imageSrc}
           alt={name}
           fill
-          className="object-contain object-center scale-125"
+          className="object-contain object-center scale-150"
         />
       </div>
 
