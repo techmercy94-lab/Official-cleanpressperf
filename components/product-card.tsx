@@ -18,7 +18,7 @@ export function ProductCard({ name, price, desc }: ProductCardProps) {
     'Crimson': '/crimson.png',
     'Verde': '/verde.png',
     'Aureo': '/aureo.png',
-    'Sterling': '/sterling.png',
+    'Argento': '/argento.png',
   }
 
   const imageSrc = imageMap[name] || '/perfumes.png'
