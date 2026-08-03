@@ -57,3 +57,4 @@ export function ProductCard({ name, price, desc }: ProductCardProps) {
     </div>
   )
 }
+
